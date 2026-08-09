@@ -214,9 +214,13 @@ class DatabaseConfig {
 
   /// Load configuration with environment-variable overrides.
   ///
-  /// `DATABASE_URL` provides the default connection. `DB_CONNECTIONS`
-  /// is a comma-separated list of names; each `DB_<NAME>_URL` provides
-  /// the URL for that named connection.
+  /// Precedence (highest first):
+  /// 1. `DATABASE_URL` — replaces/sets the default connection
+  /// 2. `DB_CONNECTIONS` + `DB_<NAME>_URL` — named connections
+  /// 3. Optional [configFile] YAML (default `database.yaml`) when the file exists
+  ///
+  /// File-less deploys (e.g. Gisila Panel) should set `DATABASE_URL` and may omit
+  /// the YAML entirely.
   static Future<DatabaseConfig> fromEnvironment({
     String configFile = 'database.yaml',
     Map<String, String>? envOverrides,

@@ -1174,15 +1174,26 @@ invoke the legacy single-file `build_runner` builder instead (adds
 
 ### `dart run gisila_orm:migrate <up|down|status> [flags]`
 
+Connection resolution (highest priority first):
+
+1. **`DATABASE_URL`** environment variable (and optional `DB_CONNECTIONS` /
+   `DB_<NAME>_URL` — see `DatabaseConfig.fromEnvironment`)
+2. Optional YAML from `--config` (default `database.yaml`) for any connections
+   not overridden by the environment
+
 | Flag | Default | Effect |
 | --- | --- | --- |
 | `--dir <path>` | `lib` | Directory to scan for `*.up.sql` / `*.down.sql` pairs (recursive). |
-| `--config <yaml>` | `database.yaml` | Path to the `DatabaseConfig` YAML. |
+| `--config <yaml>` | `database.yaml` | Optional YAML seed; env vars still win for the default connection. |
 | `--steps <n>` | `1` | (`down` only) Number of recent batches to roll back. |
 
 Examples:
 
 ```bash
+# Panel / production — uses DATABASE_URL from the process environment
+export DATABASE_URL=postgres://user:pass@db:5432/wepay
+dart run gisila_orm:migrate up
+
 dart run gisila_orm:migrate status --dir lib/models
 dart run gisila_orm:migrate up --dir lib/models --config database.yaml
 dart run gisila_orm:migrate down --dir lib/models --steps 2

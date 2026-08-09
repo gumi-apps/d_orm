@@ -3,10 +3,13 @@
 // gisila migration runner.
 //
 // Usage:
-//   dart run gisila:migrate up     [--dir <path>] [--config <yaml>]
-//   dart run gisila:migrate down   [--dir <path>] [--config <yaml>] [--steps N]
-//   dart run gisila:migrate status [--dir <path>] [--config <yaml>]
-//   dart run gisila:migrate diff   --old <path> --new <path> --name <slug> [--out <dir>]
+//   dart run gisila_orm:migrate up     [--dir <path>] [--config <yaml>]
+//   dart run gisila_orm:migrate down   [--dir <path>] [--config <yaml>] [--steps N]
+//   dart run gisila_orm:migrate status [--dir <path>] [--config <yaml>]
+//   dart run gisila_orm:migrate diff   --old <path> --new <path> --name <slug> [--out <dir>]
+//
+// Connection: prefers DATABASE_URL (and optional database.yaml overlays) via
+// DatabaseConfig.fromEnvironment — required for file-less deploys (Gisila Panel).
 
 import 'dart:io';
 
@@ -35,7 +38,23 @@ Future<void> main(List<String> args) async {
   final dir = flags['dir'] ?? _defaultDir;
   final steps = int.tryParse(flags['steps'] ?? '1') ?? 1;
 
-  final config = await DatabaseConfig.fromFile(configPath);
+  // DATABASE_URL (and DB_* overrides) win over --config YAML.
+  final config = await DatabaseConfig.fromEnvironment(configFile: configPath);
+  if (Platform.environment.containsKey('DATABASE_URL')) {
+    stdout.writeln('Using DATABASE_URL from environment.');
+  } else if (File(configPath).existsSync()) {
+    stdout.writeln(
+      'DATABASE_URL not set — using $configPath. '
+      'Set DATABASE_URL for panel/production deploys.',
+    );
+  } else {
+    stderr.writeln(
+      'No DATABASE_URL and no $configPath found. '
+      'Export DATABASE_URL or create a database.yaml.',
+    );
+    exit(64);
+  }
+
   final db = await Database.connect(config);
   final manager = MigrationManager(db);
 
@@ -102,7 +121,7 @@ Map<String, String> _parseFlags(List<String> argv) {
 
 void _usage() {
   stdout.writeln(
-    'gisila migrate <up|down|status|diff> '
+    'gisila_orm migrate <up|down|status|diff> '
     '[--dir <path>] [--config <yaml>] [--steps N] '
     '[--old <path>] [--new <path>] [--name <slug>] [--out <path>]',
   );

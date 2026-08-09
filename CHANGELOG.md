@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4
+
+- CLI: `dart run gisila_orm:migrate` now loads config via
+  `DatabaseConfig.fromEnvironment`, so **`DATABASE_URL` overrides**
+  `database.yaml` (required for file-less deploys such as Gisila Panel).
+  Optional `--config` still seeds named connections from YAML when present.
+- Package: declare `migrate` and `generate` executables in `pubspec.yaml`.
+
 ## 0.1.3
 
 - Migrations: replace the line-comment stripper added in 0.1.2 with a scanner that tracks string literals, quoted identifiers, dollar quotes, and comments, so only top-level semicolons end a statement. 0.1.2 stripped everything after the first `--` on a line even inside a string, corrupting values such as `'cargo build --release'` and leaving an unterminated literal. Anyone on 0.1.2 should upgrade.
