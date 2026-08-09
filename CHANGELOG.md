@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+- Migrations: `discoverIn` skips `*.gisila.up.sql` / `*.gisila.down.sql`
+  build_runner artifacts and sorts by migration id so incremental files under
+  `migrations/` cannot run before a baseline schema that sorts later by path.
+
 ## 0.1.4
 
 - CLI: `dart run gisila_orm:migrate` now loads config via

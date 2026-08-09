@@ -111,18 +111,29 @@ class MigrationManager {
 
   /// Discover all migrations in [directory]. Files ending in
   /// `.up.sql` are paired with same-prefix `.down.sql` files.
+  ///
+  /// Skips build_runner artifacts (`*.gisila.up.sql` / `*.gisila.down.sql`)
+  /// so a recursive scan of `lib/models` does not apply the generated baseline
+  /// out of order relative to `migrations/<timestamp>_*.up.sql`.
   Future<List<Migration>> discoverIn(String directory) async {
     final dir = Directory(directory);
     if (!await dir.exists()) {
       throw FileSystemException('Migrations directory not found', directory);
     }
     final entries = await dir.list(recursive: true).toList();
-    final files = entries.whereType<File>().toList()
-      ..sort((a, b) => a.path.compareTo(b.path));
+    final files = entries.whereType<File>().where((f) {
+      final name = f.uri.pathSegments.isEmpty
+          ? f.path
+          : f.uri.pathSegments.last;
+      if (name.endsWith('.gisila.up.sql') ||
+          name.endsWith('.gisila.down.sql')) {
+        return false;
+      }
+      return name.endsWith('.up.sql');
+    }).toList();
 
-    final upFiles = files.where((f) => f.path.endsWith('.up.sql'));
     final result = <Migration>[];
-    for (final up in upFiles) {
+    for (final up in files) {
       final base = up.path.substring(0, up.path.length - '.up.sql'.length);
       final id = _idFromPath(base);
       final downPath = '$base.down.sql';
@@ -134,6 +145,9 @@ class MigrationManager {
         sourcePath: up.path,
       ));
     }
+    // Timestamp-prefixed ids must run in id order, not full path order
+    // (`migrations/` sorts before `schema.gisila.up.sql` otherwise).
+    result.sort((a, b) => a.id.compareTo(b.id));
     return result;
   }
 
